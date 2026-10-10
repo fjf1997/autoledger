@@ -9,51 +9,53 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出当前仓库代码
+      - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 配置 Java 17 环境
+      - name: 配置 Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: 安装 Flutter SDK
+      - name: 安装 Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.22.0'
           channel: 'stable'
 
-      - name: 生成完整原生工程并合并业务代码
+      - name: 生成完整工程并合并业务代码
         run: |
-          # 生成标准完整的 Flutter Android 工程脚手架
-          flutter create --org com.example --project-name auto_ledger --platforms=android /tmp/full_project
+          # 生成标准 Flutter Android 工程脚手架
+          flutter create --org com.example --project-name auto_ledger /tmp/temp_project
           
-          # 只替换核心业务代码，保留官方生成的完整构建脚本
-          cp -rf lib/* /tmp/full_project/lib/
-          cp -rf android/app/src/* /tmp/full_project/android/app/src/
-          cp -f pubspec.yaml /tmp/full_project/
-          cp -f analysis_options.yaml /tmp/full_project/
+          # 备份我们的业务代码
+          cp -r lib /tmp/business_lib
+          cp -r android/app /tmp/business_android_app
+          cp pubspec.yaml /tmp/business_pubspec.yaml
+          cp analysis_options.yaml /tmp/business_analysis_options.yaml
           
-          # 覆盖 iOS 代码（不影响 Android 构建）
-          cp -rf ios/Runner/* /tmp/full_project/ios/Runner/ 2>/dev/null || true
-          
-          # 把完整工程移回工作目录
+          # 用完整工程替换当前目录
           rm -rf ./*
-          cp -rf /tmp/full_project/* ./
+          cp -r /tmp/temp_project/* ./
+          
+          # 覆盖业务代码
+          rm -rf lib
+          cp -r /tmp/business_lib lib
+          
+          rm -rf android/app
+          cp -r /tmp/business_android_app android/app
+          
+          cp -f /tmp/business_pubspec.yaml pubspec.yaml
+          cp -f /tmp/business_analysis_options.yaml analysis_options.yaml
 
-      - name: 添加 ML Kit 中文 OCR 依赖
-        run: |
-          # 直接追加依赖，避免之前 sed 匹配失败的问题
-          sed -i '/^dependencies {/a\    implementation '\''com.google.mlkit:text-recognition-chinese:16.0.0'\''' android/app/build.gradle
-
-      - name: 拉取项目依赖
+      - name: 安装项目依赖
         run: flutter pub get
 
-      - name: 构建 Release 版 APK（按 CPU 架构分包）
+      - name: 构建 Release 版 APK
         run: flutter build apk --release --split-per-abi
 
-      - name: 打包上传 APK 产物
+      - name: 上传 APK 产物
         uses: actions/upload-artifact@v4
         with:
           name: auto-ledger-apk
