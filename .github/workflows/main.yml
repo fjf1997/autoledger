@@ -29,13 +29,13 @@ jobs:
           # 生成标准完整的 Flutter Android 工程脚手架
           flutter create --org com.example --project-name auto_ledger --platforms=android /tmp/full_project
           
-          # 用我们的业务代码覆盖默认工程
+          # 只替换核心业务代码，保留官方生成的完整构建脚本
           cp -rf lib/* /tmp/full_project/lib/
-          cp -rf android/app/* /tmp/full_project/android/app/
+          cp -rf android/app/src/* /tmp/full_project/android/app/src/
           cp -f pubspec.yaml /tmp/full_project/
           cp -f analysis_options.yaml /tmp/full_project/
           
-          # 覆盖 iOS 代码（不影响 Android 构建，可选保留）
+          # 覆盖 iOS 代码（不影响 Android 构建）
           cp -rf ios/Runner/* /tmp/full_project/ios/Runner/ 2>/dev/null || true
           
           # 把完整工程移回工作目录
